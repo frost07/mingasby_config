@@ -1,0 +1,41 @@
+version: '3.2'
+
+services:
+
+  mingaby:
+    restart: always
+    build:
+      context: ./mingas/
+      dockerfile: Dockerfile
+    hostname: mingasby
+#    volumes:
+#      - ./mingas/:/app/
+
+  back:
+    restart: always
+    hostname: back
+    build:
+      context: ./backend-mingas/
+      dockerfile: Dockerfile
+
+
+
+  nginx:
+    restart: always
+    image: nginx:1.23.1
+    ports:
+      - 443:443
+      - 80:80
+
+    volumes:
+      - ./host/:/etc/nginx/conf.d/:ro
+      - ./host/ssl/:/ssl/:ro
+
+networks:
+  default:
+    driver: bridge
+    attachable: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.0.0/24
