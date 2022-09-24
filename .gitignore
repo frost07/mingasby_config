@@ -1,2 +1,3 @@
-/host/ssl/*
+/host/ssl/*.crt
+/host/ssl/*.key
 .idea
