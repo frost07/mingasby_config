@@ -1,2 +1,4 @@
-host/ssl/*
 .idea
+/host/ssl/certificate.crt
+/host/ssl/private.key
+
