@@ -2,34 +2,59 @@ version: '3.2'
 
 services:
 
-  mingaby:
+  frontend:
     restart: always
     build:
       context: ./mingas/
       dockerfile: Dockerfile
-    hostname: mingasby
-#    volumes:
-#      - ./mingas/:/app/
+    hostname: Frontend
+    labels:
+      # Frontend
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`mingas.by`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+      - "traefik.http.routers.frontend.service=frontend"
+      - "traefik.http.routers.frontend.tls.certresolver=leresolver"
 
-  back:
+  backend:
     restart: always
-    hostname: back
+    hostname: Backend
     build:
       context: ./backend-mingas/
       dockerfile: Dockerfile
+    labels:
+      # Backend
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`back.mingas.by`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.services.backend.loadbalancer.server.port=3000"
+      - "traefik.http.routers.backend.service=backend"
+      - "traefik.http.routers.backend.tls.certresolver=leresolver"
 
-
-
-  nginx:
-    restart: always
-    image: nginx:1.23.1
+  traefik:
+    container_name: traefik
+    image: "traefik:latest"
+    command:
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --providers.docker
+      - --log.level=ERROR
+      - --certificatesresolvers.leresolver.acme.httpchallenge=true
+      - --certificatesresolvers.leresolver.acme.email=dav@mingas.by
+      - --certificatesresolvers.leresolver.acme.storage=./acme.json
+      - --certificatesresolvers.leresolver.acme.httpchallenge.entrypoint=web
     ports:
-      - 443:443
-      - 80:80
-
+      - "80:80"
+      - "443:443"
     volumes:
-      - ./host/:/etc/nginx/conf.d/:ro
-      - ./host/ssl/:/ssl/:ro
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./acme.json:/acme.json"
+    labels:
+      - "traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)"
+      - "traefik.http.routers.http-catchall.entrypoints=web"
+      - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
 networks:
   default:
